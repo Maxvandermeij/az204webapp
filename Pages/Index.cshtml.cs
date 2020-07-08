@@ -19,11 +19,12 @@ namespace az204webapp.Pages
 
         public void OnGet()
         {
-            _logger.LogCritical("level 5: Critical Message"); // Writes an error message at log level 4 <br>
-            _logger.LogWarning("level 4: Error Message"); // Writes a warning message at log level 3<br>
-            _logger.LogInformation("level 3: Information Message"); // Writes an information message at log level 2<br>
-            _logger.LogDebug("level 2: Debug Message"); // Writes a debug message at log level 1<br>
-            _logger.LogTrace("level 1: Trace message"); // Writes a detailed trace message at log level 0<br>
+            _logger.LogCritical("level 5: Critical Message"); // Writes an error message at log level 5
+            _logger.LogError("level 4: Error Message"); // Writes an error message at log level 4
+            _logger.LogWarning("level 3: Warning Message"); // Writes a warning message at log level 3
+            _logger.LogInformation("level 2: Information Message"); // Writes an information message at log level 2
+            _logger.LogDebug("level 1: Debug Message"); // Writes a debug message at log level 1
+            _logger.LogTrace("level 0: Trace message"); // Writes a detailed trace message at log level 0
         }
     }
 }

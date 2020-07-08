@@ -91,7 +91,7 @@ az resource list --resource-group $rgname
 ---------------------
 2..Enable diagnostics logging
 ---------------------
-Now that we have created a Web App, lets checkout the basic logging features in the portal. These logging features are recommended for debugging in pre-preproduction. For production there are better options which will be discussed later in AZ-204. 
+Now that we have created a Web App, lets checkout the basic logging features in the portal. These logging features are recommended for debugging in pre-preproduction. For production there are better options (e.g: Application Insights) which will be discussed later in AZ-204. 
 
 Go to App services and open the created app service and scroll down to "App Service logs". The type of webapp determines what logging is available. For .Net Core there is: 
 
@@ -120,27 +120,21 @@ az webapp log show -n $appname -g $rgname --output yaml
 
 --------------------
 
-Application logging when turned on is only activated for a maximum of 12 hours. For DotnetCore applications there are 5 levels:
+Application logging when turned on is by default turned of after 12 hours. It is not recommended to be used in production due to the increasing consumption of storage and a possible decrease in performance of the app. 
+
+For DotnetCore applications there are 6 application log levels. The idea is that you define the lowest Log level you want to show in the configuration. The higher levels will then also be shown.
 ```c#
-logger.LogCritical("level 5: Critical Message"); // Writes an error message at log level 4 <br>
-logger.LogWarning("level 4: Error Message"); // Writes a warning message at log level 3<br>
-logger.LogInformation("level 3: Information Message"); // Writes an information message at log level 2<br>
-logger.LogDebug("level 2: Debug Message"); // Writes a debug message at log level 1<br>
-logger.LogTrace("level 1: Trace message"); // Writes a detailed trace message at log level 0<br>
+5. LogCritical
+4. LogError
+3. LogWarning
+2. LogInformation
+1. LogDebug
+0. LogTrace
 ```
-
-In the portal you can checkout the default Location of the logs when using the Console. D:\
-
-```ps
-az webapp log tail
-```
-
----------------------
-3..Deploy code to a web app
----------------------
+----------------------------------
+In order to see where these are shown lets create a basic webapp, configure logging and afterwards see where the logs are shown and downloadable. If you did not install the DotNetCore SDK, please wait a few min and use the code from the github.
 
 Create a basic dotnet Core webapi
-
 ```C#
 mkdir demowebapp
 cd demowebapp
@@ -150,12 +144,68 @@ dotnet new webapp
 dotnet new gitignore
 ```
 
+Configure logging in the Program.CS by copy pasting below code over the old IHostBuilder.
+
+```c#
+public static IHostBuilder CreateHostBuilder(string[] args) =>
+    Host.CreateDefaultBuilder(args)
+        .ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        })
+        .ConfigureWebHostDefaults(webBuilder =>
+        {
+            webBuilder.UseStartup<Startup>();
+        });
+```
+
+Next add the logmessages in the onget of Pages\index.cshtml.cs so that we get the error messages when we open the index page.
+```c#
+public void OnGet()
+        {
+            _logger.LogCritical("level 5: Critical Message"); // Writes an error message at log level 5
+            _logger.LogError("level 4: Error Message"); // Writes an error message at log level 4
+            _logger.LogWarning("level 3: Warning Message"); // Writes a warning message at log level 3
+            _logger.LogInformation("level 2: Information Message"); // Writes an information message at log level 2
+            _logger.LogDebug("level 1: Debug Message"); // Writes a debug message at log level 1
+            _logger.LogTrace("level 0: Trace message"); // Writes a detailed trace message at log level 0
+        }
+```
+
+When we publish and run the application locally, we can already see these errors in our windows "Event Viewer". By default the messages are filtered based on the level Warning (3) as defined in the appsettings.json. Thus we should see 3, 4 and 5 in our application logs. Once we have deployed our code in the next step we will get back to the logs in the portal.
+
+---------------------
+3..Deploy code to a web app
+---------------------
+There are many ways to get your code into the webapp. We will tryout two ways: deploy by just giving the github url or sending the the build artifact with the az cli.
+
+Just give the url and let azure handle the rest
 ```ps
-$gitRepo=
---deployment-source-url $gitRepo
+$gitRepo="https://github.com/Maxvandermeij/az204webapp"
+az webapp deployment source config --name $appname -g $rgname --repo-url $gitRepo --branch master --manual-integration
 ``` 
 
+Or create a zip of the artifact and send over the zip file.
+```
 
+```
+ 
+
+
+
+Code is deployed to the following folder: /home/site/wwwroot
+
+
+
+Getting back to logging:
+
+In the portal you can checkout the default Location of the logs when using the Console. D:\
+
+Or actively follow any error messages coming in 
+```ps
+az webapp log tail -n $appname -g $rgname
+```
 ---------------------
 4..Configure web app settings including SSL, API, and connection strings
 ---------------------
