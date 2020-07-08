@@ -178,17 +178,21 @@ When we publish and run the application locally, we can already see these errors
 ---------------------
 3..Deploy code to a web app
 ---------------------
-There are many ways to get your code into the webapp. We will tryout two ways: deploy by just giving the github url or sending the the build artifact with the az cli.
+There are many ways to get your code into the webapp. We will tryout two ways: deploy by just giving the github url or sending the the build artifact ZIP with the az cli.
 
-Just give the url and let azure handle the rest
+Just give the giturl and let azure handle the build + publish + release. Downside, might take longer than building it yourself.
 ```ps
 $gitRepo="https://github.com/Maxvandermeij/az204webapp"
 az webapp deployment source config --name $appname -g $rgname --repo-url $gitRepo --branch master --manual-integration
 ``` 
 
 Or create a zip of the artifact and send over the zip file.
-```
+```ps
+dotnet publish
 
+Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -DestinationPath ThisIsMyArchive.zip
+
+az webapp deployment source config-zip -g $rgname -n $appname --src ThisIsMyArchive.zip
 ```
  
 
@@ -200,7 +204,10 @@ Code is deployed to the following folder: /home/site/wwwroot
 
 Getting back to logging:
 
-In the portal you can checkout the default Location of the logs when using the Console. D:\
+In the portal you can checkout the default Location of the logs when using the Console. To find the messages that we inserted on the index page view the file with cat
+```
+cat D:\home\LogFiles\eventlog.xml
+```
 
 Or actively follow any error messages coming in 
 ```ps
