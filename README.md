@@ -142,22 +142,26 @@ cd demowebapp
 dotnet new webapp
 
 dotnet new gitignore
+Add-Content .gitignore "*.zip"
+
+dotnet add package Microsoft.Extensions.Logging.AzureAppServices --version 3.1.5
 ```
 
 Configure logging in the Program.CS by copy pasting below code over the old IHostBuilder.
 
 ```c#
 public static IHostBuilder CreateHostBuilder(string[] args) =>
-    Host.CreateDefaultBuilder(args)
-        .ConfigureLogging(logging =>
-        {
-            logging.ClearProviders();
-            logging.AddConsole();
-        })
-        .ConfigureWebHostDefaults(webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-        });
+            Host.CreateDefaultBuilder(args)
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddConsole();
+                    logging.AddAzureWebAppDiagnostics();
+                })
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
 ```
 
 Next add the logmessages in the onget of Pages\index.cshtml.cs so that we get the error messages when we open the index page.
@@ -186,30 +190,22 @@ $gitRepo="https://github.com/Maxvandermeij/az204webapp"
 az webapp deployment source config --name $appname -g $rgname --repo-url $gitRepo --branch master --manual-integration
 ``` 
 
-Or create a zip of the artifact and send over the zip file.
+Or create a zip of the artifact and send over the zip file. This would be the basic steps of a CI/CD Deployment using Azure DevOps.
 ```ps
 dotnet publish
 
-Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -DestinationPath ThisIsMyArchive.zip
+Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -DestinationPath ThisIsMyArchive.zip -Force
 
 az webapp deployment source config-zip -g $rgname -n $appname --src ThisIsMyArchive.zip
 ```
- 
+----------------------------------------
+Code/package will be deployed to the following folder by default: /home/site/wwwroot <br>
+Go to SCM or Console to view the folder. 
 
+Since we are in the console anyway lets directly checkout the logfiles we created:
+To find the messages we inserted on the index page, view the file using SCM or Console in D:\home\LogFiles\application\
 
-
-Code is deployed to the following folder: /home/site/wwwroot
-
-
-
-Getting back to logging:
-
-In the portal you can checkout the default Location of the logs when using the Console. To find the messages that we inserted on the index page view the file with cat
-```
-cat D:\home\LogFiles\eventlog.xml
-```
-
-Or actively follow any error messages coming in 
+Or actively follow any error messages coming in and reload the page to see the messages.
 ```ps
 az webapp log tail -n $appname -g $rgname
 ```
