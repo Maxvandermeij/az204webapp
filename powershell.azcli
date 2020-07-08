@@ -14,7 +14,7 @@ $appname  =  "app-$Name-$Environment-$Version"
 ### AZ CLI ###
 az login
 
-az resource list 
+az resource
 
 az group create --name $rgname --location $location 
 az appservice plan create --name $planname --resource-group $rgname --location $location --sku S1
@@ -36,25 +36,25 @@ Get-AzResource -ResourceGroupName $rgname
 #Remove-AzResourceGroup -Name $rgname
 
 #===================
-#2.
+#2.Enable diagnostics logging
+#===================
+az webapp log config --application-logging true --level verbose --name $appname --resource-group $rgname
+
+#===================
+#3. Deploy code to a web app
 #===================
 
 
-===================
-3.
-===================
+#===================
+#4. Configure web app 
+#===================
 
 
-===================
-4.
-===================
+#===================
+#5. Autoscaling
+#===================
 
 
-===================
-5.
-===================
-
-
-===================
-6.
-===================
+#===================
+#6. Cleanup
+#===================

@@ -12,9 +12,9 @@ Requirements:
 There are many ways in which you can create and manage azure resources. Today we will use the Azure portal, any terminal and VS Code. [VS Code](https://code.visualstudio.com/) with the extensions "Azure CLI Tools" to help us autocomplete and give suggestions for our commands. 
 
 Choose your preferred Terminal:
-- Az CLI - [[x]](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?view=azure-cli-latest&tabs=azure-cli)
-- Azure Cloud Shell - [[x]](portal.azure.com)
-- Az-Powershell ([x] Install-Module -Name AzureRM -AllowClobber)
+- Az CLI - [[here]](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?view=azure-cli-latest&tabs=azure-cli)
+- Azure Cloud Shell - [[here]](portal.azure.com)
+- Az-Powershell (Powershell : Install-Module -Name AzureRM -AllowClobber)
 
 Optional SDK:
 
@@ -41,23 +41,26 @@ It is recommended to group resources that belong together in the same resource g
 - Web App:          
   app-$Name-$Environment-$Version
 
+Now that we know what we need to create a Web App manually lets remove the resource group and do the same steps from the terminal so that they can be automated. 
 
-Now that we know what we need to create a Web App manually lets remove the resource group and do the same steps from the terminal so that they can be automated. You can choose to use either the az-cli or az-powershell. This file will not contain the full commands ready to copy paste because I would like to encourage getting dirty in the terminal (and thus practice). Therefore I highly recommend to use tooling for suggestions and autocompletion of commands and options.  
+------------------------
 
-Autocompletion/suggestions tools:
+For the next steps you can choose to use either the az-cli or az-powershell. I will be using Az CLI commands in a powershell terminal. Be free to use whichever tool you want. I highly recommend using intellisense tooling for help with commands and options.  
+
+Autocompletion options:
 - local AZ CLI ---- VS Code + extension "Azure CLI Tools"
-- local Az Powershell ---- Powershell ISE 
+- local Az Powershell ---- Powershell ISE
+- cloudshell ----- although not recommended, you could use "az interactive" 
 
-
-In case you have trouble finding the right command, a cheatsheet is [available](.\powershell.azcli)
-
-First login to Azure and do some basic configuration
+----------------------------------------------
+Scripting time. <br>
+First login to Azure and do some basic configuration. I like to set the default output format from json to table.
 ```
 az login                                                            
 az configure                                                        
 ```
 
-Set some basic variables to get you started
+Set some basic variables to get you started. I used powershell to run az cli commands, if you prefer bash please change the variable declaration accordingly.
 ```
 $Name        = "demo"
 $Environment = "dev"
@@ -69,23 +72,45 @@ $planname = "plan-$Name-$Environment-$Version"
 $appname  =  "app-$Name-$Environment-$Version"
 ```
 
+Create all three resources in order: rg > plan > webapp. <br>
+Use suggestions from your preferred tool to find the required variables for each resource.
 
+```
+az group create --name $rgname --location $location 
+az appservice plan create --name $planname --resource-group $rgname --location $location --sku S1
+az webapp create --name $appname --plan $planname --resource-group $rgname
+```
 
-Create all three resources in order: rg > plan > webapp
-Use suggestions from your preferred tool to find the required variables for each resource
-```
-az group create ** ** ** ** 
-az appservice create ** ** ** ** ** ** 
-az webapp create ** ** ** ** 
-```
 Now confirm that your resources are created
+
 ```
 az resource list --resource-group $rgname
 ```
 
+---------------------
+2..Enable diagnostics logging
+---------------------
+Now that we have created a Web App, lets checkout the logging features in the portal. Go to App services and open the created app service and scroll down to "App Service logs".
+Here you can find the 
 
-Create the Azure WebApp
-Open a terminal window in your editor or preferred shell
+- application logging [off / on + level]
+- web server logging [ off  / filesystem / storage)]
+- log detailed errors [ on / off]
+- failed requests tracing 
+- deployment logging
+
+Application logging levels:
+
+logger.LogCritical("level 5: Critical Message"); // Writes an error message at log level 4
+logger.LogWarning("level 4: Error Message"); // Writes a warning message at log level 3
+logger.LogInformation("level 3: Information Message"); // Writes an information message at log level 2
+logger.LogDebug("level 2: Debug Message"); // Writes a debug message at log level 1
+logger.LogTrace("level 1: Trace message"); // Writes a detailed trace message at log level 0
+
+
+---------------------
+3..Deploy code to a web app
+---------------------
 
 Create a basic dotnet Core webapi
 
@@ -98,29 +123,6 @@ dotnet new webapp
 dotnet new gitignore
 ```
 
-
----------------------
-2..Enable diagnostics logging
----------------------
-
-- application logging [off / on + level]
-- web server logging [ off  / filesystem / storage)]
-- log detailed errors [ on / off]
-- failed requests tracing 
-- deployment logging
-
-Application loggin levels:
-
-logger.LogCritical("level 5: Critical Message"); // Writes an error message at log level 4
-logger.LogWarning("level 4: Error Message"); // Writes a warning message at log level 3
-logger.LogInformation("level 3: Information Message"); // Writes an information message at log level 2
-logger.LogDebug("level 2: Debug Message"); // Writes a debug message at log level 1
-logger.LogTrace("level 1: Trace message"); // Writes a detailed trace message at log level 0
-
-
----------------------
-3..Deploy code to a web app
----------------------
 
 ---------------------
 4..Configure web app settings including SSL, API, and connection strings
