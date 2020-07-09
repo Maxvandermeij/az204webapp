@@ -14,7 +14,6 @@ There are many ways in which you can create and manage azure resources. Today we
 Choose your preferred Terminal:
 - Az CLI - [[here]](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?view=azure-cli-latest&tabs=azure-cli)
 - Azure Cloud Shell - [[here]](portal.azure.com)
-- Az-Powershell (Powershell : Install-Module -Name AzureRM -AllowClobber)
 
 Optional SDK:
 
@@ -49,11 +48,11 @@ For the next steps you can choose to use either the az-cli or az-powershell. I w
 
 Autocompletion options:
 - local AZ CLI ---- VS Code + extension "Azure CLI Tools"
-- local Az Powershell ---- Powershell ISE
 - cloudshell ----- although I do not recommend it, you could use "az interactive" 
 
 ----------------------------------------------
 Scripting time. <br>
+-----------------
 First login to Azure and do some basic configuration. I like to set the default output format from json to table.
 ```
 az login                                                            
@@ -132,6 +131,8 @@ For DotnetCore applications there are 6 application log levels. The idea is that
 0. LogTrace
 ```
 ----------------------------------
+Build our basic app
+----------
 In order to see where these are shown lets create a basic webapp, configure logging and afterwards see where the logs are shown and downloadable. If you did not install the DotNetCore SDK, please wait a few min and use the code from the github.
 
 Create a basic dotnet Core webapi
@@ -185,7 +186,7 @@ When we publish and run the application locally, we can already see these errors
 ---------------------
 3..Deploy code to a web app
 ---------------------
-There are many ways to get your code into the webapp. We will tryout two ways: deploy by just giving the github url or sending the the build artifact ZIP with the az cli.
+There are many ways to get your code into the webapp. We will tryout two ways: deploying by just giving the github url or depoying by sending the build artifact ZIP from the az cli.
 
 Just give the giturl and let azure handle the build + publish + release. Downside, might take longer than building it yourself.
 ```ps
@@ -201,6 +202,8 @@ Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -Dest
 
 az webapp deployment source config-zip -g $rgname -n $appname --src ThisIsMyArchive.zip
 ```
+----------
+SCM
 ----------------------------------------
 Code/package will be deployed to the following folder by default: /home/site/wwwroot <br>
 Go to SCM or Console to view the folder. 
@@ -218,7 +221,9 @@ az webapp log tail -n $appname -g $rgname
 
 Configuring a webapps that are deployed to a Azure Web App can be done in many ways. You can either configure settings directly in your code (appsettings.json / web.config), define some stuff in the portal (azcli or clickops), or use a combination of both.
 
-In portal you can find the possible settings under appservices > our app > configuration > appsettings
+Appsettings
+-------------
+In the portal you can find the possible settings under appservices > our app > configuration > appsettings.
 
 Here in the appsettings you can define variables which are stored as secrets. Once you deploy your code, Azure will do its magic and replace the existing development variable value (which it looks for in either the web.config or appsettings.json) with the production value stored in the appsettings of the webapp. This way you don't need to replace configs during deployment to specify production values and secrets are limited to the location where it is needed.
 
@@ -227,10 +232,7 @@ Also the Az CLI give you these options so that you automate these settings. Chec
 az webapp config -h
 ```
 
-We don't want the app to be run under 32bit and we don't want the application to go into idle mode. We are paying for the computing power anyway based on time. Let's set them correctly so that the default values are replaced by what we want. 
-
- - platform (64bit)
- - idle time of app (off)
+We don't want the app to be run under 32bit and we don't want the application to go into idle mode. We are paying for compute power based on time not load anyway. Let's set them correctly so that the default values are replaced by what we want. 
 
 ```ps
 az webapp config set --use-32bit-worker-process false -n $appname -g $rgname
@@ -240,7 +242,11 @@ az webapp config set --always-on true -n $appname -g $rgname
 --------------------------------------
 Custom domain
 -------
-Now that we have a running application, we don't want to keep going to the default url. Let's configure a custom domain. I don't expect everyone to have an available domain ready to try this on so just wait a min while I show you how simple it can be. Go to the Portal > App Services > your webapp > Custom domain and click on ADD custom domain.
+Now that we have a running application, we don't want to keep going to the default url. Let's configure a custom domain. 
+
+I don't expect everyone to have an available domain ready to try this on. If you don't, skip the custom domain and SSL settings as they require having a domain.
+
+ just wait a min while I show you how simple it can be. Go to the Portal > App Services > your webapp > Custom domain and click on ADD custom domain.
 Insert your domain url and press validate. In this view you will get the settings that you need to put into the DNS configuration of your domain. I'll demonstrate how it works for my domain.
 
 SSL
@@ -250,10 +256,12 @@ Once the domain has been validated we can add a certificate to validate the iden
 You can pay Azure for the best certificates available but we can also opt for the cheap route and get a free one. If you go to Private key Certificates you can Create App Service Managed Certificate. This will take a few moments..
 
 Once its been created, go back to bindings and add a TLS/Binding with this certificate, opt for type: IP Based. From now on we don't people to connect to our website without HTTPS so lets force that config.
+
 ```ps
 az webapp update --set httpsOnly=true -g $rgname -n $appname
 ```
-Now refresh your browser(really exit it), visit your domain on www.yourdomain.nl. Hooray, it's now secure.
+
+Now refresh your browser(really exit it), visit your domain on www.insertdomain.nl. Hooray, it's now secure.
 
 ---------------------
 5..Implement autoscaling rules, including scheduled autoscaling, and scaling by operational or system metrics
@@ -281,7 +289,7 @@ az resource list -g $rgname -n $planname --query [].id --output table
 Next define the autoscale settings for this resource. The settings defined here will use 2 instances as a default and scale up or down between 1 - 5 instances.
 ```ps
 $resourceID= "paste the id"
-az monitor autoscale create --name $Name -g $rgname --resource $resourceID --min-count 1 --max-count 5 --count 2
+az monitor autoscale create --name $Name -g $rgname --resource $resourceID --min-count 1 --max-count 10 --count 2
 ```
 
 Check autoscale run history in the portal, we should now see that a upscale event triggered to reach the default of 2.
@@ -307,10 +315,10 @@ Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -Dest
 az webapp deployment source config-zip -g $rgname -n $appname --src CPULoadArchive.Zip
 ```
 
-Now help me increase the load on the Web app, be creative, try to get it down by talking to the following url: maxtips.nl/Prime?searchLimit=10000000     <br>
-I'll keep the resource monitor up to see the changes.
+Now help me increase the load on the Web app, be creative, try to get it down by talking to the following url: maxtips.nl/Prime?searchLimit=10000000     <br><br>
+I'll keep the resource monitor up to see the changes to prove that Autoscale will increase the amount of instances according to our rules.
 
-
+Can we get to 10 instances?
 
 --------------------
 6..Cleanup
