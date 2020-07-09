@@ -273,31 +273,51 @@ If you need more instances of your application to get more work done, you can al
 
 Go to Azure Monitor > AutoScale to find the resources that are available for autoscale. If you have completed the last step, it should be listed. 
 
-First get a copy of our web app resource ID either from the portal or from this command: 
+First get a copy of our web app resource ID either from the portal (Service Plan > properties) or from this command. Look for the one which ends like this "Microsoft.Web/serverFarms/plan-demo-dev-001"
 ```ps
-az resource list -g $rgname -n $appname --query [].id --output table
+az resource list -g $rgname -n $planname --query [].id --output table
 ```
 
-Next define the autoscale settings for this resource. The settings defined here will use 2 instances as a default and scale up and down between 1 - 5 instances.
+Next define the autoscale settings for this resource. The settings defined here will use 2 instances as a default and scale up or down between 1 - 5 instances.
 ```ps
 $resourceID= "paste the id"
-az monitor autoscale create -g $rgname --resource $resourceID --min-count 1 --max-count 5 --count 2
+az monitor autoscale create --name $Name -g $rgname --resource $resourceID --min-count 1 --max-count 5 --count 2
 ```
 
-The logic behind the autoscale is based on the rule(s) that you create. 
+Check autoscale run history in the portal, we should now see that a upscale event triggered to reach the default of 2.
 
+We will now add some basic upscale rule and a seperate downscale rule so that autoscale has some logic on which it can base the outscaling and inscaling. We will go for the metric CPUPercentage and let it up or down 1 instance based on a threshold.
 
-https://github.com/Maxvandermeij/ScalingWebApp
+```
+az monitor autoscale rule create -g $rgname --autoscale-name $Name --scale out 1 --condition "CpuPercentage > 50 avg 1m"
 
+az monitor autoscale rule create -g $rgname --autoscale-name $Name --scale in 1 --condition "CpuPercentage < 25 avg 1m"
+```
 
+Finally, lets load another CPU heavy API into our webapp so that we can deliver some CPUload.
 
+```
+cd ..
+git clone https://github.com/Maxvandermeij/ScalingWebApp
+cd ScalingWebApp
+dotnet publish
 
+Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -DestinationPath CPULoadArchive.zip -Force
 
+az webapp deployment source config-zip -g $rgname -n $appname --src CPULoadArchive.Zip
+```
 
-
+Now help me get the CPU load up, be creative: www.maxtips.nl/Prime?searchLimit=10000000     <br>
+I'll keep the monitor up to see the changes.
 
 --------------------
 6..Cleanup
------------------------
+--------------------
+Once we are done, time for cleanup.
 
+```
+az group delete --name ""
+```
 
+<br>
+Thanks for playing and practicing together!
