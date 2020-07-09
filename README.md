@@ -50,7 +50,7 @@ For the next steps you can choose to use either the az-cli or az-powershell. I w
 Autocompletion options:
 - local AZ CLI ---- VS Code + extension "Azure CLI Tools"
 - local Az Powershell ---- Powershell ISE
-- cloudshell ----- although not recommended, you could use "az interactive" 
+- cloudshell ----- although I do not recommend it, you could use "az interactive" 
 
 ----------------------------------------------
 Scripting time. <br>
@@ -78,8 +78,8 @@ Use suggestions from your preferred tool to find the required variables for each
 
 ```ps
 az group create --name $rgname --location $location 
-az appservice plan create --name $planname --resource-group $rgname --location $location --sku S1
-az webapp create --name $appname --plan $planname --resource-group $rgname
+az appservice plan create --name $planname --resource-group $rgname --location $location --sku B1
+az webapp create --name $appname --plan $planname --resource-group $rgname 
 ```
 
 Now confirm that your resources are created
@@ -147,9 +147,12 @@ Add-Content .gitignore "*.zip"
 dotnet add package Microsoft.Extensions.Logging.AzureAppServices --version 3.1.5
 ```
 
-Configure logging in the Program.CS by copy pasting below code over the old IHostBuilder.
+Configure logging in the Program.cs by copy pasting below code over the old IHostBuilder and adding the reference to the package on top of the file.
 
 ```c#
+using Microsoft.Extensions.Logging.AzureAppServices;
+
+
 public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureLogging(logging =>
@@ -213,10 +216,78 @@ az webapp log tail -n $appname -g $rgname
 4..Configure web app settings including SSL, API, and connection strings
 ---------------------
 
+Configuring a webapps that are deployed to a Azure Web App can be done in many ways. You can either configure settings directly in your code (appsettings.json / web.config), define some stuff in the portal (azcli or clickops), or use a combination of both.
+
+In portal you can find the possible settings under appservices > our app > configuration > appsettings
+
+Here in the appsettings you can define variables which are stored as secrets. Once you deploy your code, Azure will do its magic and replace the existing development variable value (which it looks for in either the web.config or appsettings.json) with the production value stored in the appsettings of the webapp. This way you don't need to replace configs during deployment to specify production values and secrets are limited to the location where it is needed.
+
+Also the Az CLI give you these options so that you automate these settings. Checkout the possible settings with the following command.
+```ps
+az webapp config -h
+```
+
+We don't want the app to be run under 32bit and we don't want the application to go into idle mode. We are paying for the computing power anyway based on time. Let's set them correctly so that the default values are replaced by what we want. 
+
+ - platform (64bit)
+ - idle time of app (off)
+
+```ps
+az webapp config set --use-32bit-worker-process false -n $appname -g $rgname
+az webapp config set --always-on true -n $appname -g $rgname
+
+```
+--------------------------------------
+Custom domain
+-------
+Now that we have a running application, we don't want to keep going to the default url. Let's configure a custom domain. I don't expect everyone to have an available domain ready to try this on so just wait a min while I show you how simple it can be. Go to the Portal > App Services > your webapp > Custom domain and click on ADD custom domain.
+Insert your domain url and press validate. In this view you will get the settings that you need to put into the DNS configuration of your domain. I'll demonstrate how it works for my domain.
+
+SSL
+-------
+Once the domain has been validated we can add a certificate to validate the identity of our webapp and prevent the annoying popups in your browser. Next to that it also helps with encrypting traffic. These settings are grouped in the portal under appservices > our app > TLS/SSL
+
+You can pay Azure for the best certificates available but we can also opt for the cheap route and get a free one. If you go to Private key Certificates you can Create App Service Managed Certificate. This will take a few moments..
+
+Once its been created, go back to bindings and add a TLS/Binding with this certificate, opt for type: IP Based. From now on we don't people to connect to our website without HTTPS so lets force that config.
+```ps
+az webapp update --set httpsOnly=true -g $rgname -n $appname
+```
+Now refresh your browser(really exit it), visit your domain on www.yourdomain.nl. Hooray, it's now secure.
 
 ---------------------
 5..Implement autoscaling rules, including scheduled autoscaling, and scaling by operational or system metrics
 ---------------------
+Scaling the hardware of your webapp can be done by scaling up or down on your App Service Plan. All that we used so far required at least a Basic Tier Service Plan, defined as "B1" when we created the service plan initially.
+
+Now,  we want to try out autoscaling which is only available in Standard Service Plans or higher. Scale it up by going to the portal > App Services > your app > Scale up > Production. Select S1 and apply OR use the following command for the same effect
+```ps
+az appservice plan update --sku S1 -g $rgname -n $planname
+az appservice plan show -g $rgname -n $planname --output table
+```
+-----------------
+Autoscale
+---------------------
+
+If you need more instances of your application to get more work done, you can also use the autoscale option on your webapp. Autoscaling can scale based on metrics or scale to a specific amount of instances. Once you have defined the autoscaling settings, you can setup a trigger based on metrics or on a specific date or time.
+
+Go to Azure Monitor > AutoScale to find the resources that are available for autoscale. If you have completed the last step, it should be listed. 
+
+First get a copy of our web app resource ID either from the portal or from this command: 
+```ps
+az resource list -g $rgname -n $appname --query [].id --output table
+```
+
+Next define the autoscale settings for this resource. The settings defined here will use 2 instances as a default and scale up and down between 1 - 5 instances.
+```ps
+$resourceID= "paste the id"
+az monitor autoscale create -g $rgname --resource $resourceID --min-count 1 --max-count 5 --count 2
+```
+
+The logic behind the autoscale is based on the rule(s) that you create. 
+
+
+https://github.com/Maxvandermeij/ScalingWebApp
 
 
 
@@ -225,16 +296,8 @@ az webapp log tail -n $appname -g $rgname
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+--------------------
 6..Cleanup
+-----------------------
+
 

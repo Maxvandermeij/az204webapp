@@ -11,34 +11,10 @@ $appname  =  "app-$Name-$Environment-$Version"
 #1. Create an Azure App Service Web App
 #===================
 
-### AZ CLI ###
-az login
-
-az resource
-
-az group create --name $rgname --location $location 
-az appservice plan create --name $planname --resource-group $rgname --location $location --sku S1
-az webapp create --name $appname --plan $planname --resource-group $rgname 
-
-az resource list --resource-group $rgname
-#az group delete --name $rgname
-
-### AZ Powershell ###
-Connect-AzAccount
-
-Get-AzResource | Format-Table ResourceGroupName, Name, Location
-
-New-AzResourceGroup -Name $rgname -location $location
-New-AzAppServicePlan -Name $planname -ResourceGroupName $rgname -location $location -Tier Standard
-New-AzWebApp -Name $appname -AppServicePlan $planname -ResourceGroupName $rgname
-
-Get-AzResource -ResourceGroupName $rgname
-#Remove-AzResourceGroup -Name $rgname
-
 #===================
-#2.Enable diagnostics logging
+#2. Enable diagnostics logging
 #===================
-az webapp log config --application-logging true --level verbose --name $appname --resource-group $rgname
+
 
 #===================
 #3. Deploy code to a web app
