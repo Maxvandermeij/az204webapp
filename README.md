@@ -294,7 +294,7 @@ az monitor autoscale rule create -g $rgname --autoscale-name $Name --scale out 1
 az monitor autoscale rule create -g $rgname --autoscale-name $Name --scale in 1 --condition "CpuPercentage < 25 avg 1m"
 ```
 
-Finally, lets load another CPU heavy API into our webapp so that we can deliver some CPUload.
+Finally, lets load another CPU heavy API into our webapp so that we can deliver some CPUload. Thanks to @eschipper for creating this Primenumber calculator.
 
 ```
 cd ..
@@ -307,8 +307,10 @@ Get-ChildItem -Path .\bin\Debug\netcoreapp3.1\publish\* | Compress-Archive -Dest
 az webapp deployment source config-zip -g $rgname -n $appname --src CPULoadArchive.Zip
 ```
 
-Now help me get the CPU load up, be creative: www.maxtips.nl/Prime?searchLimit=10000000     <br>
-I'll keep the monitor up to see the changes.
+Now help me increase the load on the Web app, be creative, try to get it down by talking to the following url: maxtips.nl/Prime?searchLimit=10000000     <br>
+I'll keep the resource monitor up to see the changes.
+
+
 
 --------------------
 6..Cleanup
@@ -316,7 +318,7 @@ I'll keep the monitor up to see the changes.
 Once we are done, time for cleanup.
 
 ```
-az group delete --name ""
+az group delete --name "replace this with the resource group name"
 ```
 
 <br>
